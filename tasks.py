@@ -9,6 +9,8 @@ from RPA.Browser.Selenium import Selenium
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from robocorp.tasks import task
+
 
 class NewsScraper:
     def __init__(self, search_phrase, section, months_back):
@@ -19,8 +21,8 @@ class NewsScraper:
         self.target_date = self._get_target_date()
         self.results = []
         self.excel_file = "news_data.xlsx"
-        self.screenshot_directory = os.path.join("output", self.search_phrase)
-        os.makedirs(self.screenshot_directory, exist_ok=True)
+        self.screenshot_directory = "output"
+        #os.makedirs(self.screenshot_directory, exist_ok=True)
 
     def _get_target_date(self):
         target_date = datetime.now() - relativedelta(months=self.months_back - 1)
@@ -140,6 +142,7 @@ class NewsScraper:
         finally:
             self.browser.close_all_browsers()
 
-
-scraper = NewsScraper(search_phrase='Donald Trump', section="business", months_back=1)
-scraper.run()
+@task
+def run_bot():
+    scraper = NewsScraper(search_phrase='"Brad Pitt"', section="business", months_back=2)
+    scraper.run()
