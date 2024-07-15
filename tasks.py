@@ -88,7 +88,7 @@ class NewsScraper:
                 description = self.browser.get_text(self.browser.driver.find_element(By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]'))
 
                 WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]')))
-                image_filename = self.browser.capture_element_screenshot(self.browser.driver.find_element(By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]'), str(counter) + '.png')
+                image_filename = self.browser.capture_element_screenshot(f'xpath:/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]', str(counter) + '.png')
 
                 title_count = title.lower().count(self.search_phrase.lower())
                 description_count = description.lower().count(self.search_phrase.lower())
