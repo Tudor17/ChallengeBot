@@ -9,6 +9,7 @@ from RPA.Browser.Selenium import Selenium
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from robocorp.tasks import task
 from RPA.Robocorp.WorkItems import WorkItems
 
@@ -28,6 +29,30 @@ class NewsScraper:
     def _get_target_date(self):
         target_date = datetime.now() - relativedelta(months=self.months_back - 1)
         return target_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    def _get_news_info(self, xpath):
+        attempt = 0
+        while attempt < 3:
+            try:
+                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, xpath)))
+                return self.browser.get_text(self.browser.driver.find_element(By.XPATH, xpath))
+            except (StaleElementReferenceException, TimeoutException) as e:
+                print(f"Attempt {attempt+1} failed: {e}. Retrying...")
+                attempt += 1
+                time.sleep(3)
+        raise Exception("Failed to select the checkbox after 3 attempts")
+    
+    def _get_image(self, xpath, counter):
+        attempt = 0
+        while attempt < 3:
+            try:
+                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, xpath)))
+                return self.browser.capture_element_screenshot("xpath:" + xpath, str(counter) + '.png')
+            except (StaleElementReferenceException, TimeoutException) as e:
+                print(f"Attempt {attempt+1} failed: {e}. Retrying...")
+                attempt += 1
+                time.sleep(3)
+        raise Exception("Failed to select the checkbox after 3 attempts")
 
     def _extract_money(self, text):
         money_pattern = r'\$[\d,.]+|\d+ dollars|\d+ USD'
@@ -56,6 +81,8 @@ class NewsScraper:
         self.browser.select_from_list_by_value(
             "xpath:/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/div[1]/div[2]/div/label/select", "1"
         )
+
+        time.sleep(5)
 
     def filter_by_section(self):
         WebDriverWait(self.browser.driver, 10).until(
@@ -92,14 +119,20 @@ class NewsScraper:
                     last_page = True
                     break
 
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/div/h3')))
-                title = self.browser.get_text(self.browser.driver.find_element(By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/div/h3'))
+                #WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/div/h3')))
+                #title = self.browser.get_text(self.browser.driver.find_element(By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/div/h3'))
 
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]')))
-                description = self.browser.get_text(self.browser.driver.find_element(By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]'))
+                #WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]')))
+                #description = self.browser.get_text(self.browser.driver.find_element(By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]'))
 
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]')))
-                image_filename = self.browser.capture_element_screenshot(f'xpath:/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]', str(counter) + '.png')
+                title = self._get_news_info(f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/div/h3')
+
+                description = self._get_news_info(f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]')
+
+                #WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]')))
+                #image_filename = self.browser.capture_element_screenshot(f'xpath:/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]', str(counter) + '.png')
+
+                image_filename = self._get_image(f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]', counter)
 
                 title_count = title.lower().count(self.search_phrase.lower())
                 description_count = description.lower().count(self.search_phrase.lower())
