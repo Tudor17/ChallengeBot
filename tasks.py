@@ -90,17 +90,16 @@ class NewsScraper:
         )
         labels = self.browser.driver.find_elements(By.CLASS_NAME, 'checkbox-input-label')
 
-        self.browser.click_element("xpath:/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/aside/div/div[3]/div[1]/ps-toggler/ps-toggler/button")
-        self.browser.click_element("xpath:/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/aside/div/div[3]/div[2]/ps-toggler/ps-toggler/button")
-
-        for index, label in enumerate(labels):
-            if self.section.lower() == WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/aside/div/div[3]/div[1]/ps-toggler/ps-toggler/div/ul/li[{str(index+1)}]/div/div[1]/label'))).text.lower():
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/aside/div/div[3]/div[1]/ps-toggler/ps-toggler/div/ul/li[{str(index+1)}]/div/div[1]/label'))).click()
-                break
-
-        #matching_element = next((label for label in labels if self.section.lower() in self.browser.get_text(label).lower()), None)
-        #if matching_element:
-        #    self.browser.click_element(matching_element)
+        attempt = 0
+        while attempt < 3:
+            try:
+                matching_element = next((label for label in labels if self.section.lower() in self.browser.get_text(label).lower()), None)
+                if matching_element:
+                    self.browser.click_element(matching_element)
+            except (StaleElementReferenceException, TimeoutException) as e:
+                print(f"Attempt {attempt+1} failed: {e}. Retrying...")
+                attempt += 1
+                time.sleep(3)
 
     def scrape_results(self):
         self.browser.set_screenshot_directory(self.screenshot_directory)
@@ -178,7 +177,7 @@ class NewsScraper:
         try:
             self.open_site("https://www.latimes.com/")
             self.search_news()
-            #self.filter_by_section()
+            self.filter_by_section()
             self.scrape_results()
             self.save_to_excel()
         finally:
