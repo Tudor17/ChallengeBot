@@ -32,7 +32,7 @@ class NewsScraper:
         return len(matches) > 0
 
     def open_site(self, url):
-        self.browser.open_available_browser(url, maximized=True)
+        self.browser.open_available_browser(url, browser_selection="chrome", maximized=True)
 
     def search_news(self):
         WebDriverWait(self.browser.driver, 10).until(
@@ -40,15 +40,18 @@ class NewsScraper:
         )
         self.browser.click_element("xpath:/html/body/ps-header/header/div[2]/button")
 
+        WebDriverWait(self.browser.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "/html/body/ps-header/header/div[2]/div[2]/form/label/input"))
+        )
         search_input = self.browser.driver.find_element(By.XPATH, '/html/body/ps-header/header/div[2]/div[2]/form/label/input')
         search_input.send_keys(self.search_phrase)
         search_input.submit()
 
         WebDriverWait(self.browser.driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "search-results-module"))
+            EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/div[1]/div[2]/div/label/select"))
         )
         self.browser.select_from_list_by_value(
-            "xpath:/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/div[1]/div[2]/div/label/select", "1"
+            "xpath:/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/div[1]/div[2]/div/label/select", "1"
         )
 
     def filter_by_section(self):
@@ -67,24 +70,25 @@ class NewsScraper:
         counter = 1
 
         while not last_page:
+            WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "promo-wrapper")))
             news_elements = self.browser.driver.find_elements(By.CLASS_NAME, 'promo-wrapper')
-            for news in news_elements:
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "promo-timestamp")))
-                date_element = news.find_element(By.CLASS_NAME, 'promo-timestamp')
+            for index, news in enumerate(news_elements):
+                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[2]')))
+                date_element = self.browser.driver.find_element(By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[2]')
                 date = datetime.fromtimestamp(float(self.browser.get_element_attribute(date_element, 'data-timestamp')) / 1000)
 
                 if date < self.target_date:
                     last_page = True
                     break
 
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "promo-title")))
-                title = self.browser.get_text(news.find_element(By.CLASS_NAME, 'promo-title'))
+                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/div/h3')))
+                title = self.browser.get_text(self.browser.driver.find_element(By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/div/h3'))
 
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "promo-description")))
-                description = self.browser.get_text(news.find_element(By.CLASS_NAME, 'promo-description'))
+                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]')))
+                description = self.browser.get_text(self.browser.driver.find_element(By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[2]/p[1]'))
 
-                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "promo-media")))
-                image_filename = self.browser.capture_element_screenshot(news.find_element(By.CLASS_NAME, 'promo-media'), str(counter) + '.png')
+                WebDriverWait(self.browser.driver, 10).until(EC.presence_of_element_located((By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]')))
+                image_filename = self.browser.capture_element_screenshot(self.browser.driver.find_element(By.XPATH, f'/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/ul/li[{str(index+1)}]/ps-promo/div/div[1]'), str(counter) + '.png')
 
                 title_count = title.lower().count(self.search_phrase.lower())
                 description_count = description.lower().count(self.search_phrase.lower())
@@ -102,10 +106,9 @@ class NewsScraper:
                 counter += 1
 
             try:
-                next_button = WebDriverWait(self.browser.driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, "/html/body/div[2]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/div[2]/div[3]/a"))
-                )
-                next_button.click()
+                WebDriverWait(self.browser.driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, "/html/body/div[3]/ps-search-results-module/form/div[2]/ps-search-filters/div/main/div[2]/div[3]/a"))
+                ).click()
             except:
                 last_page = True
 
